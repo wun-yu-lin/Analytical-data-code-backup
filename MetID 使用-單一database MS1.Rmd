@@ -1,0 +1,27 @@
+library(metID)
+library(tinyTools)
+library(doParallel)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+path <- file.path(".", "example")
+setwd("~/Met_ID_test")
+
+annotate_result_match_sirius_results <- 
+     identify_metabolites(ms1.data = "ms1.peak.table.csv", 
+                          ms1.match.ppm = 15, 
+                          rt.match.tol = 100000, 
+                          polarity = "positive", 
+                          column = "rp", 
+                          path = path, 
+                          candidate.num = 1,
+                          database = "creat.database", 
+                          threads = 1)
+                          
+load(file.path(path,"creat.database"))
+
+     
+annotate_table_match <- 
+     get_identification_table(annotate_result_match_sirius_results, candidate.num = 1, type = "new")
+write.csv(annotate_table_match,file = "./example/results_match.csv")

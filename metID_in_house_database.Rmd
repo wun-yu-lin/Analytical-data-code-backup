@@ -1,0 +1,44 @@
+ BiocParallel::MulticoreParam(workers = threads, progressbar = TRUE)
+ 
+ 
+ 
+ test.database <- construct_database(
+     path = path,
+     version = "0.0.1",
+     metabolite.info.name = "demo.csv",
+     source = "CCL lab",
+     link = "http://mbio.nchu.edu.tw/main.html/",
+     creater = "CCL lab",
+     email = "t928394558@gmail.com",
+     rt = FALSE,
+     mz.tol = 20,
+     rt.tol = 100000000,
+     threads = 1
+ )
+ 
+ save(test.database, file = "test.database")
+ 
+ 
+ annotate_result_test <- 
+    identify_metabolites(ms1.data = "ms1.peak.table_POS.csv",
+                         ms2.data = "ms2spectra_all_binsize0.02_peakgroup.mgf",
+                         ms1.ms2.match.mz.tol = 25,
+                         ms1.ms2.match.rt.tol = 30,
+                         ms1.match.ppm = 15,
+                         ms2.match.ppm = 30,
+                         ms2.match.tol = 0.5,
+                         fraction.weight = 0.3,
+                         dp.forward.weight = 0.6,
+                         dp.reverse.weight = 0.1,
+                         rt.match.tol = 10000000,
+                         polarity = "positive",
+                         ce = "all",
+                         column = "rp",
+                         ms1.match.weight = 0.25,
+                         rt.match.weight = 0.25,
+                         ms2.match.weight = 0.5,
+                         path = path,
+                         total.score.tol = 0.5,
+                         candidate.num = 1,
+                         database = "test.database",
+                         threads = 1)

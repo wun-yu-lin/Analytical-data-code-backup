@@ -1,0 +1,27 @@
+
+https://jaspershen.github.io/metID/articles/database_construction.html 
+##使用metID建立database 
+library(metID)
+library(tinyTools)
+library(doParallel)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+setwd("~/Met_ID_test/Construct_database")
+cddatabase<- file.path("./database_construction")
+
+
+creat.database <- construct_database(
+     path = cddatabase,
+     version = "0.0.1",
+     metabolite.info.name = "POS_prediction_database.csv",
+     source = "CCL lab",
+     link = "https://www.nchu.edu.tw/~mbio/",
+     creater = "CCL lab",
+     email = "t928394558@gmail.com",
+     threads = 1
+)
+
+save(creat.database,file = "creat.database")
+

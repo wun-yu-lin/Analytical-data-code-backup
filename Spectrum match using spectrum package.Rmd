@@ -1,0 +1,50 @@
+library(Spectra)
+library(xcms)
+library(MsBackendMgf)
+library(MSnbase)
+if (.Platform$OS.type == "unix") {
+  register(bpstart(MulticoreParam(1)))
+} else {
+  register(bpstart(SnowParam(1)))
+} 
+MSdata <- paste0("PA_STD_POS/",list.files(path = "PA_STD_POS/",pattern = ".mgf$", recursive = TRUE))
+View(MSdata)
+
+#extraction Spectra data from mgf (infusion) file
+
+HP_spectrum_ce26 <- Spectra(MSdata[1])
+HQNO_spectrum_ce29 <- Spectra(MSdata[2])
+HQNO_spectrum_ce43 <- Spectra(MSdata[3])
+PCA_spectrum_ce20 <- Spectra(MSdata[4])
+PCA_spectrum_ce40 <- Spectra(MSdata[5])
+PCN_spectrum_ce18 <- Spectra(MSdata[6])
+PCN_spectrum_ce40 <- Spectra(MSdata[7])
+PQS_spectrum_ce34 <- Spectra(MSdata[8])
+PQS_spectrum_ce48 <- Spectra(MSdata[9])
+PYO_spectrum_ce28 <- Spectra(MSdata[10])
+
+#extraction MS2 spectrum using Xcms
+dda_data_raw <- paste0("DDA//",list.files(path = "DDA//",pattern = ".mzXML$", recursive = TRUE))
+dda_data_raw <- readMSData(dda_data_raw, mode = "onDisk")
+dda_data_raw <- filterEmptySpectra(dda_data_raw)
+cwp <- CentWaveParam(snthresh = 5, noise = 100, peakwidth = c(5, 30), ppm = 20)
+dda_data <- findChromPeaks(dda_data_raw, param = cwp)
+dda_spectra <- chromPeakSpectra(
+    dda_data, msLevel = 2L, return.type = "Spectra",expandRt = 3, expandMz = 0.01)
+
+ex_mz <- 197.0712
+ex_rt <- c(1200,1300)
+chromPeaks(dda_data, mz = ex_mz,rt = ex_rt,ppm = 20)
+ex_id <- rownames(chromPeaks(dda_data, mz = ex_mz,rt = ex_rt,ppm = 20))
+ex_spectra <- dda_spectra[dda_spectra$peak_id == ex_id]
+ex_spectra
+
+plotSpectra(ex_spectra)
+
+
+plotSpectraMirror(PCA_spectrum_ce20[1],PCA_spectrum_ce40[1], main = "PCA",
+                   ppm = 40, xlim = c(100,300))
+                   
+Spectra::compareSpectra(ex_spectrum, flumanezil, ppm = 20)
+                   
+                   

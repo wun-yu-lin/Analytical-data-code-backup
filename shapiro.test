@@ -1,0 +1,21 @@
+sharpiro-wilk test
+library(readr)
+df <- read_csv("~/MS1.peak.table.final.csv")
+output1 <-data.frame(do.call(rbind, lapply(df, function(x) shapiro.test(x)[c("statistic", "p.value")])))
+log1 <- output1$p.value>0.05
+int1 = as.numeric(log1)
+output2 <-  data.frame(Normal_distribution=int1)
+
+Num_total <- list(True = sum(output2$Normal_distribution==1),
+                  False =sum(output2$Normal_distribution==0),
+                  Total = length(output2$Normal_distribution))
+results1 <- data.frame(output1,output2$Normal_distribution)
+
+results2 <-  data.frame(True = (Num_total$True / Num_total$Total)*100,
+                        False =(Num_total$False / Num_total$Total)*100)
+
+                        
+                        
+                        
+write.csv(results1,file = "./sharpiro.test.results1.csv",row.names = T, na = "NA")
+write.csv(results2,file = "./sharpiro.test.results2.csv",row.names = T, na = "NA")

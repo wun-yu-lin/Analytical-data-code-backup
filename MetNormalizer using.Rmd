@@ -1,0 +1,13 @@
+library(MetNormalizer)
+library(ggplot2)
+path <-file.path(".")
+test.svr <- metNor(
+     ms1.data.name = "data.csv",
+     sample.info.name = "sample.info.csv",
+     minfrac.qc = 0,
+     minfrac.sample = 0,
+     optimization = TRUE,
+     multiple = 5,
+     threads = 1,
+     path = path
+     )

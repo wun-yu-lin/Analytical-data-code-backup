@@ -1,0 +1,8 @@
+library("MetaboAnalystR")
+setwd("~/MetaboAnalystR")
+data_folder_Sample <- "./Data_IBD"
+data_folder_QC <- "./QC_IBD"
+PerformDataInspect(data_folder_QC,res = 50)
+raw_data <- PerformDataTrimming(data_folder_QC,rt.idx = 0.2)
+param_initial <- SetPeakParam(platform = "HPLC-Q/TOF")
+param_optimized <- PerformParamsOptimization(raw_data, param = param_initial, ncore = 4) 

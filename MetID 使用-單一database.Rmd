@@ -1,0 +1,85 @@
+
+library(metID)
+library(tinyTools)
+library(doParallel)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+path <- file.path(".")
+setwd("~/Met_ID_test/ID_metabolites")
+
+## 使用monadatabase定性+結果輸出
+annotate_result_mona <- 
+     identify_metabolites(ms1.data = "ms1.peak.table.csv",
+                         ms2.data = "ms2spectra_all_re.mgf",
+                         ms1.ms2.match.mz.tol = 15,
+                         ms1.ms2.match.rt.tol = 5,
+                         ms1.match.ppm = 15,
+                         ms2.match.ppm = 30,
+                         ms2.match.tol = 0.5,
+                         fraction.weight = 0.3,
+                         dp.forward.weight = 0.6,
+                         dp.reverse.weight = 0.1,
+                         rt.match.tol = 30,
+                         polarity = "positive",
+                         ce = "all",
+                         column = "rp",
+                         ms1.match.weight = 0.25,
+                         rt.match.weight = 0.25,
+                         ms2.match.weight = 0.5,
+                         path = path,
+                         total.score.tol = 0.5,
+                         candidate.num = 1,
+                         database = "monaDatabase0.0.1",
+                         threads = 1)
+                          
+load(file.path(path,"monaDatabase0.0.1"))
+ms2plot(
+     object = annotate_result_mona,
+     database = monaDatabase0.0.1,
+     which.peak = "all",
+     path = file.path(path, "mona"), 
+     threads = 1)
+     
+annotation_table_mona <- 
+     get_identification_table(annotate_result_mona, candidate.num = 1, type = "new")
+write.csv(annotation_table_mona,file = "./results_mona.csv")
+
+## 使用massbankDatabase定性+結果輸出
+annotate_result_massbank <- 
+     identify_metabolites(ms1.data = "ms1.peak.table.csv",
+                         ms2.data = "ms2spectra_all_re.mgf",
+                         ms1.ms2.match.mz.tol = 15,
+                         ms1.ms2.match.rt.tol = 5,
+                         ms1.match.ppm = 15,
+                         ms2.match.ppm = 30,
+                         ms2.match.tol = 0.5,
+                         fraction.weight = 0.3,
+                         dp.forward.weight = 0.6,
+                         dp.reverse.weight = 0.1,
+                         rt.match.tol = 30,
+                         polarity = "positive",
+                         ce = "all",
+                         column = "rp",
+                         ms1.match.weight = 0.25,
+                         rt.match.weight = 0.25,
+                         ms2.match.weight = 0.5,
+                         path = path,
+                         total.score.tol = 0.5,
+                         candidate.num = 1,
+                         database = "massbankDatabase0.0.1",
+                         threads = 1)
+                          
+load(file.path(path,"massbankDatabase0.0.1"))
+ms2plot(
+     object = annotate_result_massbank,
+     database = massbankDatabase0.0.1,
+     which.peak = "all",
+     path = file.path(path, "massbank"), 
+     threads = 1)
+     
+annotation_table_massbank <- 
+     get_identification_table(annotate_result_massbank, candidate.num = 1, type = "new")
+write.csv(annotation_table_massbank,file = "./results_massbank.csv")
+

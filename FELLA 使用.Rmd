@@ -1,0 +1,19 @@
+##FELLA
+library(FELLA)
+
+
+##建立kegg 資料庫 
+##代號請參考 https://www.genome.jp/kegg/catalog/org_list.html
+g <- buildGraphFromKEGGREST(organism = "pae")
+buildDataFromGraph(g)
+
+FELLA:::launchApp(host = "127.0.0.1", port = 8888)
+
+
+
+
+g <- loadKEGGdata(databaseDir = tmpdir,
+                  internalDir = FALSE,
+                  loadMatrix = "diffusion")
+                  
+plotGraph(graph,layout = TRUE,plot.fun = "tkplot")

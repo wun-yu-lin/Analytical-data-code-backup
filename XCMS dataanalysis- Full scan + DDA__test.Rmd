@@ -1,0 +1,81 @@
+##限制單核使用
+library(doParallel)
+library(xcms)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+
+if (.Platform$OS.type == "unix") {
+  register(bpstart(MulticoreParam(1)))
+} else {
+  register(bpstart(SnowParam(1)))
+} 
+
+setwd("~/XCMS dataanalysis")
+path <- file.path(".")
+
+####sample group 用資料夾分開!! "MS1/PA3715" "MS1/PA712"以此類推
+
+MSdata <- paste0("MS1/",list.files(path = "MS1/",pattern = ".mzXML$", recursive = TRUE))
+MSdata
+
+
+                 
+pd <- data.frame(sample_name = sub(basename(MSdata), 
+                                    pattern = ".mzXML",
+                                    replacement = "", 
+                                    fixed = TRUE),
+                  sample_group = c(rep("Against", 3),
+                                   rep("Normal", 3),
+                                   rep("Normal", 3),
+                                   rep("Against", 3),
+                                   rep("QC", 10)),
+                  class=c(rep("Against", 3),
+                          rep("Normal", 3),
+                          rep("Normal", 3),
+                          rep("Against", 3),
+                          rep("QC", 10)),
+                  stringsAsFactors
+                  = FALSE)
+                 
+                 
+rawData <- readMSData(MSdata, centroided. = TRUE, mode = "onDisk",
+                      pdata = new("NAnnotatedDataFrame", pd), msLevel. = 1)
+                      
+                      
+
+#peak picking
+cwp <- CentWaveParam(snthresh = 5, noise = 100, peakwidth = c(10, 60), ppm = 20, mzdiff = 0.01)
+processedData <- findChromPeaks(rawData, param = cwp)
+
+
+### Retention time alignment
+processedData <- adjustRtime(processedData, param = ObiwarpParam())
+
+### Peak grouping
+pdp <- PeakDensityParam(sampleGroups = processedData$sample_group,
+                        minFraction = 1, minSamples = 3, binSize = 0.01)
+processedData <- groupChromPeaks(processedData, param = pdp)
+
+### Gap filling (fill missing peaks)
+medWidth <- median(chromPeaks(processedData)[, "rtmax"] -
+                   chromPeaks(processedData)[, "rtmin"])
+processed_Data <- fillChromPeaks(processedData, param = FillChromPeaksParam(fixedRt = medWidth))
+
+### Export MS2 data to mgf
+source("https://raw.githubusercontent.com/jorainer/xcms-gnps-tools/master/customFunctions.R")
+filteredMs2Spectra <- featureSpectra(processedData, return.type = c("MSpectra","list"))
+filteredMs2Spectra <- clean(filteredMs2Spectra, all = TRUE)
+filteredMs2Spectra <- formatSpectraForGNPS(filteredMs2Spectra)
+writeMgfData(filteredMs2Spectra, "ms2spectra_all.mgf")
+
+## get data
+featuresDef <- featureDefinitions(processedData)
+featuresIntensities <- featureValues(processedData, value = "into")
+## generate data table
+dataTable <- merge(featuresDef, featuresIntensities, by=0, all=TRUE)
+dataTable <- dataTable[, !(names(dataTable) %in% c("peakidx"))]
+head(dataTable)
+write.table(dataTable, "xcms_all.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+ 

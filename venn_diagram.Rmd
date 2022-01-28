@@ -1,0 +1,99 @@
+library(VennDetail)
+library(VennDiagram)
+
+
+draw_venn<-venn.diagram(
+     x = list(DDA1, DDA2, DDA3),
+     category.names = c("DDA1" , "DDA2" , "DDA3"),
+     filename = "DDA comparison.png",
+     output = TRUE ,
+     imagetype="png" ,
+     height =  5000, 
+     width =5000 , 
+     resolution = 6000,
+     compression = "lzw",
+     lwd = 1,
+     col=c("cornflowerblue", 'darkolivegreen2', 'coral1'),
+     fill = c("cornflowerblue","darkolivegreen2","coral1"),
+     cex = 0.2,
+     fontfamily = "sans",
+     cat.cex = 0.2,
+     cat.default.pos = "outer",
+     cat.pos = c(-27, 27, 135),
+     cat.dist = c(0.055, 0.055, 0.085),
+     cat.fontfamily = "sans",
+     cat.col = c("black", 'black', 'black'),
+     rotation = 1
+ )
+
+
+
+draw_venn<-venn.diagram(
+    x = list(PA3596,PA3712,PA3715,PA3772,AUHPA1),
+    category.names = c("PA3596","PA3712","PA3715","PA3772","AUHPA1"),
+    filename = "DDA comparison.png",
+    output = TRUE ,
+    imagetype="png" ,
+    col = mycolors,
+    fill = mycolors,
+    height = 8000,
+    width = 8000,
+    resolution = 1000,
+    compression = "lzw",
+    lwd = 1,
+    cat.default.pos = "outer",
+    cat.dist = c(0.09),
+    cat.cex = 1.2,
+    cat.col = "black")
+    
+    
+draw_venn<-venn.diagram(
+    x = list(QC,study),
+    category.names = c("QC","Study"),
+    filename = "DDA comparison3.png",
+    output = TRUE ,
+    imagetype="png" ,
+    col = c("cornflowerblue", 'lightblue'),
+    fill = c("cornflowerblue", 'lightblue'),
+    height = 8000,
+    width = 8000,
+    resolution = 1000,
+    compression = "lzw",
+    lwd = 1,
+    cat.default.pos = "outer",
+    cat.dist = c(0.02),
+    cat.cex = 1.5,
+    cat.col = "black",
+    cat.pos = c(-120,120),
+    cex = 1.8)
+    
+    
+overlap <- calculate.overlap(x = list(MS0_MS1_venn_over0, MS0_MS2_venn_over0, MS0_MS3_venn_over0))
+overlap_all<-overlap$a5
+only_MS1<-overlap$a1
+overlap_all<-as.data.frame(overlap_all)
+write.csv(overlap_all,file="/Users/frankliu/Desktop/MS0_all_overlap_over0.csv")
+
+draw_venn<-venn.diagram(
+    x = list(DDA1, DDA2, DDA3),
+    category.names = c("DDA1" , "DDA2" , "DDA3"),
+    filename = "DDA comparison.tiff",
+    output = TRUE ,
+    imagetype="tiff" ,
+    height =  5000, 
+    width =5000 , 
+    resolution = 6000,
+    compression = "lzw",
+    lwd = 0.1,
+    col=c("cornflowerblue", 'darkolivegreen2', 'coral1'),
+    fill = c("cornflowerblue","darkolivegreen2","coral1"),
+    cex = 0.2,
+    fontfamily = "sans",
+    cat.cex = 0.2,
+    cat.default.pos = "outer",
+    cat.pos = c(-27, 27, 135),
+    cat.dist = c(0.055, 0.055, 0.085),
+    cat.fontfamily = "sans",
+    cat.col = c("black", 'black', 'black'),
+    rotation = 1
+)

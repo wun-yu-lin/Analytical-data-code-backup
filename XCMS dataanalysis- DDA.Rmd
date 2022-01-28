@@ -1,0 +1,176 @@
+##呼叫套件
+library(xcms)
+library(RColorBrewer)
+library(pander)
+library(magrittr)
+library(pheatmap)
+library(SummarizedExperiment)
+
+##控制CPU核心使用
+if (.Platform$OS.type == "unix") {
+  register(bpstart(MulticoreParam(1)))
+} else {
+  register(bpstart(SnowParam(1)))
+} 
+
+
+
+
+####sample group 用資料夾分開!! "MS1/PA3715" "MS1/PA712"以此類推
+
+MSdata <- paste0("fullscan/",list.files(path = "fullscan/",pattern = ".mzXML$", recursive = TRUE))
+MSdata
+
+
+                 
+pd <- data.frame(sample_name = sub(basename(MSdata), 
+                                    pattern = ".mzXML",
+                                    replacement = "", 
+                                    fixed = TRUE),
+                  sample_group = c(rep("AUHPA1", 3), 
+                                   rep("PA3596", 3),
+                                   rep("PA3712", 3),
+                                   rep("PA3715", 3),
+                                   rep("PA3772", 3),
+                                   rep("QC", 8)),
+                  class=c(rep("AUHPA1", 3), 
+                          rep("PA3596", 3),
+                          rep("PA3712", 3),
+                          rep("PA3715", 3),
+                          rep("PA3772", 3),
+                          rep("QC", 8)),
+                  stringsAsFactors
+                  = FALSE)
+                 
+##讀LC-MSMS檔                 
+rawData <- readMSData(MSdata, centroided. = TRUE, mode = "onDisk",
+                      pdata = new("NAnnotatedDataFrame", pd))
+##filterEmptySpectra                      
+rawData <- filterEmptySpectra(rawData)
+rawData <- filterRt(rawData, c(0,2400))  ###不一定要用
+                      
+
+        
+#peak picking (需開單核跑)
+register(bpstart(SnowParam(1)))
+
+cwp <- CentWaveParam(snthresh = 5, noise = 100, peakwidth = c(5, 30), ppm = 20)
+processedData_raw <- findChromPeaks(rawData, param = cwp)
+        
+##MergeNeighboringPeaks       
+mpp <- MergeNeighboringPeaksParam(expandRt = 3, expandMz = 0, ppm=20)
+xdata_pp <- refineChromPeaks(processedData_raw,param=mpp)
+processedData <- xdata_pp
+                      
+                  
+
+
+
+
+### Retention time alignment (兩種方式 obiwarpParam 跟 PeakGroups)
+
+###obiwarpParam***(改成單核心跑不然容易出問題)
+processedData <- adjustRtime(processedData, param = ObiwarpParam(centerSample = 16))
+## Get the base peak chromatograms.
+group_colors <- paste0(brewer.pal(6, "Set1")[1:6], "60")
+group_colors
+names(group_colors) <- c("AUDPA1","PA3596","PA3712","PA3715","PA3772","QC")
+bpis_adj <- chromatogram(processedData, aggregationFun = "max", include = "none")
+par(mfrow = c(2, 1), mar = c(4.5, 4.2, 1, 0.5))
+plot(bpis_adj, col = group_colors[bpis_adj$sample_group])
+
+## Plot also the difference of adjusted to raw retention time.
+plotAdjustedRtime(processedData, col = group_colors[processedData$sample_group])
+
+
+###PeakGroups###
+processedData$sample_type <- "study"
+processedData$sample_type[c(16, 17,18,19,20,21,22,23)] <- "QC"
+processedData$sample_type
+
+###PeakGroups-grouping variable''''''' 
+pdp_subs <- PeakDensityParam(sampleGroups = processedData$sample_type,
+                             minFraction = 0.9)
+processedData <- groupChromPeaks(processedData, param = pdp_subs)
+
+###PeakGroups-subset-alignment options and perform the alignment 設定QC來校正RT
+pgp_subs <- PeakGroupsParam(minFraction = 0.9,
+                            subset = which(processedData$sample_type == "QC"),
+                            subsetAdjust = "average", span = 0.2)
+processedData <- adjustRtime(processedData, param = pgp_subs)
+
+***畫RT校正後的圖***
+clrs <- rep("#00000040")
+clrs[processedData$sample_type == "QC"] <- c("#00ce0080")
+par(mfrow = c(2, 1), mar = c(4, 4.5, 1, 0.5))
+plot(chromatogram(processedData, aggregationFun = "sum"),
+     col = clrs, peakType = "none")
+plotAdjustedRtime(processedData, col = clrs, peakGroupsPch = 1,
+                  peakGroupsCol = "#00ce0040")
+
+
+
+### Peak grouping
+pdp <- PeakDensityParam(sampleGroups = processedData$sample_group,
+                        minFraction = 1, binSize = 0.02)
+processedData <- groupChromPeaks(processedData, param = pdp) 
+
+### Gap filling (fill missing peaks)
+medWidth <- median(chromPeaks(processedData)[, "rtmax"] -
+                   chromPeaks(processedData)[, "rtmin"])
+processed_Data <- fillChromPeaks(processedData, param = FillChromPeaksParam(fixedRt = medWidth))
+
+### Export MS2 data to mgf(只有DDA數據可以使用)
+source("https://raw.githubusercontent.com/jorainer/xcms-gnps-tools/master/customFunctions.R")
+filteredMs2Spectra <- featureSpectra(processed_Data, return.type = c("MSpectra","list"))
+filteredMs2Spectra <- clean(filteredMs2Spectra, all = TRUE)
+filteredMs2Spectra <- formatSpectraForGNPS(filteredMs2Spectra)
+writeMgfData(filteredMs2Spectra, "ms2spectra_all.mgf") 
+
+## get MS1 data
+featuresDef <- featureDefinitions(processed_Data)
+featuresIntensities <- featureValues(processed_Data, value = "into")
+## generate MS1 data table
+dataTable <- merge(featuresDef, featuresIntensities, by=0, all=TRUE)
+dataTable <- dataTable[, !(names(dataTable) %in% c("peakidx"))]
+head(dataTable)
+write.table(dataTable, "xcms_all.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+
+
+
+#################################以下為額外功能########################################
+##看TIC圖譜
+bpis <- chromatogram(rawData, aggregationFun = "max")
+group_colors <- paste0(brewer.pal(6, "Set1")[1:6], "60")
+names(group_colors) <- c("AUDPA1","PA3596","PA3712","PA3715","PA3772","QC")
+plot(bpis, col = group_colors[rawData$sample_group])
+
+rtr <- c(0, 2400)
+mzr <- c(100, 1000)
+group_colors <- paste0(brewer.pal(6, "Set1")[1:6], "60")
+chr_raw <- chromatogram(rawData, mz = mzr, rt = rtr)
+plot(chr_raw, col = group_colors[chr_raw$sample_group])
+
+##看離子分布
+tc <- split(tic(rawData), f = fromFile(rawData))
+boxplot(tc, col = group_colors[rawData$sample_group],
+        ylab = "intensity", main = "Total ion current")
+        
+##看離子分布
+summary_fun <- function(z)
+    c(peak_count = nrow(z), rt = quantile(z[, "rtmax"] - z[, "rtmin"]))
+
+T <- lapply(split.data.frame(
+    chromPeaks(processedData), f = chromPeaks(processedData)[, "sample"]),
+    FUN = summary_fun)
+T <- do.call(rbind, T)
+rownames(T) <- basename(fileNames(processedData))
+pandoc.table(
+    T,
+    caption = paste0("Summary statistics on identified chromatographic",
+                     " peaks. Shown are number of identified peaks per",
+                     " sample and widths/duration of chromatographic ",
+                     "peaks."))
+plotChromPeaks(processedData, file = 3)
+plotChromPeakImage(processedData)   
+ 

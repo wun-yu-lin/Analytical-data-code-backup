@@ -1,0 +1,44 @@
+library(doParallel)
+
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+if (.Platform$OS.type == "unix") {
+     register(bpstart(MulticoreParam(1)))
+ } else {
+     register(bpstart(SnowParam(1)))
+ } 
+
+##不能使用!!!
+library(xcms)
+
+setwd("~/XCMS dataprecessing/convert to mgf")
+mzMLfiles <- paste0("file/",
+                     list.files(path = "file/",
+                                pattern = ".mzXML$", recursive = TRUE))
+s_groups <- rep("sample", length(mzMLfiles))
+pheno <- data.frame(sample_name = sub(basename(mzMLfiles), pattern = ".mzML",replacement = "", fixed = TRUE),
+                     sample_group = s_groups, stringsAsFactors = FALSE)
+rawData <- readMSData(mzMLfiles, centroided. = TRUE, mode = "onDisk",
+                      pdata = new("NAnnotatedDataFrame", pheno))
+dda <- filterRt(rawData, c(30, 2400))
+
+)
+
+cwp <- CentWaveParam(snthresh = 5, noise = 500, peakwidth = c(10, 60), ppm = 20, mzdiff = 0.05)
+dda_processed <- findChromPeaks(dda, param = cwp)
+
+mS2data <- chromPeakSpectra(
+     dda_processed,
+     msLevel = 2L,
+     expandRt = 0,
+     expandMz = 0,
+     ppm = 0,
+     method = c("all", "closest_rt", "closest_mz", "signal"),
+     skipFilled = FALSE,
+     return.type = c("MSpectra", "list")
+ )
+ 
+mS2data <- clean(mS2data, all = TRUE)
+writeMgfData(mS2data, "ms2spectra_all_method2.mgf")

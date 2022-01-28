@@ -1,0 +1,63 @@
+##限制單核使用
+library(doParallel)
+library(xcms)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+
+if (.Platform$OS.type == "unix") {
+  register(bpstart(MulticoreParam(1)))
+} else {
+  register(bpstart(SnowParam(1)))
+} 
+
+
+
+
+
+
+
+##Load data
+setwd("~/XCMS dataprecessing/convert to mgf")
+mzMLfiles <- paste0("file/",
+                    list.files(path = "file/",
+                               pattern = ".mzXML$", recursive = TRUE))
+s_groups <- rep("sample", length(mzMLfiles))
+pheno <- data.frame(sample_name = sub(basename(mzMLfiles), pattern = ".mzXML",replacement = "", fixed = TRUE),
+                    sample_group = s_groups, stringsAsFactors = FALSE)
+                    
+##Read data
+rawData <- readMSData(mzMLfiles, centroided. = TRUE, mode = "onDisk",
+                       pdata = new("NAnnotatedDataFrame", pheno))
+##filterEmptySpectra                       
+rawData <- filterEmptySpectra(rawData)
+rawData <- filterRt(rawData, c(30,2400))
+
+
+#peak picking
+cwp <- CentWaveParam(snthresh = 5, noise = 500, peakwidth = c(10, 60), ppm = 20, mzdiff = 0.01)
+processedData <- findChromPeaks(rawData, param = cwp)
+
+
+### Retention time alignment
+processedData <- adjustRtime(processedData, param = ObiwarpParam())
+
+### Peak grouping
+pdp <- PeakDensityParam(sampleGroups = processedData$sample_group,
+                        minFraction = 0.10)
+processedData <- groupChromPeaks(processedData, param = pdp) 
+
+### Gap filling (fill missing peaks)
+medWidth <- median(chromPeaks(processedData)[, "rtmax"] -
+                   chromPeaks(processedData)[, "rtmin"])
+processed_Data <- fillChromPeaks(processedData, param = FillChromPeaksParam(fixedRt = medWidth))
+
+### Export MS2 data to mgf
+source("https://raw.githubusercontent.com/jorainer/xcms-gnps-tools/master/customFunctions.R")
+filteredMs2Spectra <- featureSpectra(processedData, return.type = c("MSpectra","list"))
+filteredMs2Spectra <- clean(filteredMs2Spectra, all = TRUE)
+filteredMs2Spectra <- formatSpectraForGNPS(filteredMs2Spectra)
+writeMgfData(filteredMs2Spectra, "ms2spectra_all.mgf")
+
+ 

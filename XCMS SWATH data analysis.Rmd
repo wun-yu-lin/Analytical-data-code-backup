@@ -1,0 +1,37 @@
+
+library(doParallel)
+library(xcms)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+
+setwd("~/XCMS DIA/mydata")
+
+file <- dir("raw.data/",full.name = TRUE, pattern = "mzML$")
+pd <- data.frame(sample_name = sub(basename(file), pattern = ".mzML",
+                                   replacement = "", fixed = TRUE),
+                 sample_group = rep("QC"),
+                 class=rep("QC"),stringsAsFactors
+                 = FALSE)
+swath_data <- readMSData(file, mode = "onDisk")
+
+swath_data <- filterRt(swath_data, c(30,2400))
+swath_data <- filterEmptySpectra(swath_data)
+
+cwp <- CentWaveParam(snthresh = 5, noise = 500, ppm = 20,
+                      peakwidth = c(10, 60))
+swath_data <- findChromPeaks(swath_data, param = cwp)
+
+cwp <- CentWaveParam(snthresh = 3, noise = 10, ppm = 20,
+                     peakwidth = c(10, 60))
+swath_data <- findChromPeaksIsolationWindow(swath_data, param = cwp)
+
+swath_spectrum <- reconstructChromPeakSpectra(swath_data,
+                                              expandRt = 1,
+                                              diffRt = 2,
+                                              minCor = 0.8,
+                                              intensity = "maxo",
+                                              peakId = rownames(chromPeaks(swath_data, msLevel = 1L)),
+                                              BPPARAM = bpparam()
+)

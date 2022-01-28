@@ -1,0 +1,67 @@
+library(metID)
+library(tinyTools)
+library(doParallel)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+path <- file.path(".", "example")
+setwd("~/Met_ID_test")
+param1 <-
+     identify_metabolites_params(
+         ms1.match.ppm = 15,
+         rt.match.tol = 10000,
+         polarity = "positive",
+         ce = "all",
+         column = "rp",
+         total.score.tol = 0.5,
+         candidate.num = 3,
+         threads = 1,
+         database = "msDatabase_rplc0.0.2")
+param2 <- identify_metabolites_params(
+     ms1.match.ppm = 15,
+     rt.match.tol = 10000,
+     polarity = "positive",
+     ce = "all",
+     column = "rp",
+     total.score.tol = 0.5,
+     candidate.num = 3,
+     threads = 1,
+     database = "orbitrapDatabase0.0.1")
+     
+param3 <- identify_metabolites_params(
+     ms1.match.ppm = 15,
+     rt.match.tol = 10000,
+     polarity = "positive",
+     ce = "all",
+     column = "rp",
+     total.score.tol = 0.5,
+     candidate.num = 3,
+     threads = 1,
+     database = "hmdbMS1Database0.0.1")
+param4 <- identify_metabolites_params(
+     ms1.match.ppm = 15,
+     rt.match.tol = 10000,
+     polarity = "positive",
+     ce = "all",
+     column = "rp",
+     total.score.tol = 0.5,
+     candidate.num = 3,
+     threads = 1,
+     database = "massbankDatabase0.0.1")
+param5 <- identify_metabolites_params(
+     ms1.match.ppm = 15,
+     rt.match.tol = 10000,
+     polarity = "positive",
+     ce = "all",
+     column = "rp",
+     total.score.tol = 0.5,
+     candidate.num = 3,
+     threads = 1,
+     database = "monaDatabase0.0.1")
+result <- identify_metabolite_all(
+    ms1.data = "ms1.peak.table.csv",
+    ms2.data = c("QC1.mgf","QC2.mgf","QC3.mgf"),
+    parameter.list = c(param1, param2, param3, param4, param5),
+    path = path)
+    

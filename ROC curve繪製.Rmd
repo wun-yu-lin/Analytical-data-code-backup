@@ -1,0 +1,14 @@
+ROC curve 繪製
+import data.frame
+兩個package可畫
+
+library("ROCR")
+pred <- prediction(df$prediction, df$label)
+perf <- performance(pred,"tpr","fpr")
+
+
+
+
+library(PRROC)
+PRROCPLOT <- roc.curve(scores.class0 = ROC_test$prediction, weights.class0 = ROC_test$label, curve = TRUE)
+plot(PRROCPLOT)

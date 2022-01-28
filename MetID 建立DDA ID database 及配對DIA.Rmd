@@ -1,0 +1,105 @@
+library(metID)
+library(tinyTools)
+
+path <- file.path(".")
+
+
+#使用metID比對database並產出配對結果
+
+DDA_match <- 
+    identify_metabolites(ms1.data = "ms1.peak.table.csv",
+                         ms2.data = "ms2spectra_all_binsize0.02_peakgroup.mgf",
+                         ms1.ms2.match.mz.tol = 15,
+                         ms1.ms2.match.rt.tol = 30,
+                         ms1.match.ppm = 15,
+                         ms2.match.ppm = 30,
+                         ms2.match.tol = 0.5,
+                         fraction.weight = 0,
+                         dp.forward.weight = 0,
+                         dp.reverse.weight = 0,
+                         rt.match.tol = 30,
+                         polarity = "positive",
+                         ce = "all",
+                         column = "rp",
+                         ms1.match.weight = 0.5,
+                         rt.match.weight = 0.5,
+                         ms2.match.weight = 0,
+                         path = path,
+                         total.score.tol = 0.5,
+                         candidate.num = 10,
+                         database = "msDatabase_rplc0.0.2",
+                         threads = 1)
+match.results_15ppm_30s_database.pos <- DDA_match@match.result
+write.csv(match.results_15ppm_30s_database.pos, file = "match.results_15ppm_30s_results.pos.csv")
+###進excel建立database.csv!!
+
+
+
+##建DDA_ID_database
+DDA_database <- construct_database(
+    path = ".",
+    version = "0.0.1",
+    metabolite.info.name = "match.results_15ppm_30s_database.pos.csv",
+    source = "CCL lab",
+    link = "https://www.nchu.edu.tw/~mbio/",
+    creater = "CCL lab",
+    email = "t928394558@gmail.com",
+    rt = TRUE,
+    mz.tol = 15,
+    rt.tol = 30,
+    threads = 1
+)
+
+save(DDA_database,file = "DDA_database")
+
+
+#使用metID比對database
+
+DDA_database_results_match <- 
+    identify_metabolites(ms1.data = "ms1.peak.table.csv",
+                         ms2.data = NULL,
+                         ms1.ms2.match.mz.tol = 25,
+                         ms1.ms2.match.rt.tol = 10,
+                         ms1.match.ppm = 15,
+                         ms2.match.ppm = 30,
+                         ms2.match.tol = 0.5,
+                         fraction.weight = 0,
+                         dp.forward.weight = 0,
+                         dp.reverse.weight = 0,
+                         rt.match.tol = 30,
+                         polarity = "positive",
+                         ce = "all",
+                         column = "rp",
+                         ms1.match.weight = 0.5,
+                         rt.match.weight = 0.5,
+                         ms2.match.weight = 0,
+                         path = path,
+                         total.score.tol = 0.5,
+                         candidate.num = 10,
+                         database = "DDA_database",
+                         threads = 1)
+                         
+filter_results_DDA_results_match <- filter_adducts(object = DDA_database_results_match, remove_adduct = c("(M+H-H2O)+","(M+H-2H2O)+","(M+NH4)+","(M+Na)+","(M-H+2Na)+","(M-2H+3Na)+","(M+K)+","(M-H+2K)+","(M-2H+3K)+","(M+CH3CN+H)+","(M+CH3CN+Na)+","(2M+H)+","(2M+NH4)+","(2M+Na)+","(2M+K)+","(M+HCOO+2H)+"))
+
+##取得配對結果
+annotate_table_match_DDA_results <- 
+    get_identification_table(filter_results_DDA_results_match, candidate.num = 1, type = "new")
+                         
+##轉成新data.frame
+final_match_table_DDA <- data.frame(names=annotate_table_match_DDA_results$name,
+                                       DDA_ID=annotate_table_match_DDA_results$Lab.ID,
+                                       mz=annotate_table_match_DDA_results$mz,
+                                       rt=annotate_table_match_DDA_results$rt,
+                                       Compound.name=annotate_table_match_DDA_results$Compound.name,
+                                       link_ID=annotate_table_match_DDA_results$CAS.ID,
+                                       adduct=annotate_table_match_DDA_results$HMDB.ID,
+                                       prediction_score=annotate_table_match_DDA_results$KEGG.ID,
+                                       mz.error=annotate_table_match_DDA_results$mz.error,
+                                       mz.match.score=annotate_table_match_DDA_results$mz.match.score,
+                                       RT.error=annotate_table_match_DDA_results$RT.error,
+                                       RT.match.score=annotate_table_match_DDA_results$RT.match.score,
+                                       total.score=annotate_table_match_DDA_results$Total.score,
+                                       Database=annotate_table_match_DDA_results$Database)
+                                       
+                                       
+write.csv(final_match_table_DDA,"final_match_table_DDA_results_15ppm_30s.csv")

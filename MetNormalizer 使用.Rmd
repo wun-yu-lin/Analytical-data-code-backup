@@ -1,0 +1,26 @@
+
+setwd("~/Metnorlization")
+library(MetNormalizer)
+path <- file.path("./Metnormal")
+library(doParallel)
+cores <- detectCores()
+cores <- detectCores()
+cl <- makeCluster(cores[1]-1)
+registerDoParallel(cl)
+
+****檔案要放在"~/Metnorlization/Metnormal"內
+而且檔名一定要
+data.csv
+smaple.info.csv
+
+metNor(
+  ms1.data.name = "data.csv",
+  sample.info.name = "sample.info.csv",
+  minfrac.qc = 0,
+  minfrac.sample = 0,
+  optimization = TRUE,
+  multiple = 10,
+  threads = 1,
+  path = path
+)
+收結果
